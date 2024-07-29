@@ -7,7 +7,7 @@ from .exceptions import InvalidUrlConfiguration
 
 
 def load_config(config_path=None):
-    """Load ORM configuration from given configuration path (dotted or not).
+    """Loads ORM configuration from given configuration path (dotted or not).
     If no path is provided:
         1. try to load from DB_CONFIG_PATH environment variable
         2. else try to load from default config_path: config/database
