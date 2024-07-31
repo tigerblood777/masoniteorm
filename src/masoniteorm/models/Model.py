@@ -1073,7 +1073,7 @@ class Model(TimeStampsMixin, ObservesEvents, metaclass=ModelMeta):
         related = getattr(self.__class__, relation)
         return related
 
-    def attach(self, relation, related_record):
+    def attach(self, relation, related_record, extra_fields=None):
         related = getattr(self.__class__, relation)
 
         if not related_record.is_created():
@@ -1081,7 +1081,7 @@ class Model(TimeStampsMixin, ObservesEvents, metaclass=ModelMeta):
         else:
             related_record.save()
 
-        return related.attach(self, related_record)
+        return related.attach(self, related_record, extra_fields)
 
     def detach(self, relation, related_record):
         related = getattr(self.__class__, relation)
