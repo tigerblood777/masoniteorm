@@ -309,37 +309,21 @@ class BelongsToMany(BaseRelationship):
 
         table1 = owner.get_table_name()
         table2 = query.get_table_name()
+
         result = query.select(
-            f"{query.get_table_name()}.*",
-            f"{self._table}.{self.local_key} as {self._table}_id",
-            f"{self._table}.{self.foreign_key} as m_reserved2",
-        ).table(f"{table1}")
-
-        if self.pivot_id:
-            result.select(f"{self._table}.{self.pivot_id} as m_reserved3")
-
-        if self.with_timestamps:
-            result.select(
-                f"{self._table}.updated_at as m_reserved4",
-                f"{self._table}.created_at as m_reserved5",
-            )
-
-        result.join(
-            f"{self._table}",
-            f"{self._table}.{self.local_key}",
-            "=",
-            f"{table1}.{self.local_owner_key}",
+            f"{table2}.*",
         )
+
         result.join(
-            f"{table2}",
-            f"{self._table}.{self.foreign_key}",
-            "=",
+            f"{self._table} as {self._table}",
             f"{table2}.{self.other_owner_key}",
+            "=",
+            f"{self._table}.{self.foreign_key}",
         )
 
-        if hasattr(owner, self.local_owner_key):
+        if hasattr(related_record, self.local_owner_key):
             result.where(
-                f"{table1}.{self.local_owner_key}", getattr(owner, self.local_owner_key)
+                f"{self._table}.{self.local_key}", getattr(related_record, self.local_owner_key)
             )
 
         if self.with_fields:
