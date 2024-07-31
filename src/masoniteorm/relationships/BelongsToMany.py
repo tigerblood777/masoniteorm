@@ -139,7 +139,7 @@ class BelongsToMany(BaseRelationship):
                     pivot_data.update({field: getattr(model, field)})
                     model.delete_attribute(field)
 
-            model.__original_attributes__.update(
+            model.__attributes__.update(
                 {
                     self._as: (
                         Pivot.on(query.connection)
