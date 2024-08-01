@@ -1,18 +1,36 @@
 from ..collection import Collection
 from .BaseRelationship import BaseRelationship
+from ..models.Pivot import Pivot
 from ..config import load_config
 
 
 class MorphToMany(BaseRelationship):
-    def __init__(self, fn, morph_key="record_type", morph_id="record_id"):
+    def __init__(
+        self,
+        fn,
+        morph_key="record_type",
+        morph_id="record_id",
+        morphing_id=None,
+        other_owner_key=None,
+        local_owner_key=None,
+        table=None,
+    ):
         if isinstance(fn, str):
             self.fn = None
             self.morph_key = fn
             self.morph_id = morph_key
+            self.morphing_id = morph_id or "morphing_id"
+            self.other_owner_key = morphing_id or "id"
+            self.local_owner_key = other_owner_key or "id"
         else:
             self.fn = fn
             self.morph_id = morph_id
             self.morph_key = morph_key
+            self.morphing_id = morphing_id or "id"
+            self.other_owner_key = other_owner_key or "id"
+            self.local_owner_key = local_owner_key or "id"
+
+        self._table = table
 
     def get_builder(self):
         return self._related_builder
@@ -35,7 +53,7 @@ class MorphToMany(BaseRelationship):
             object -- Either returns a builder or a hydrated model.
         """
         attribute = self.fn.__name__
-        self._related_builder = instance.builder
+        self._related_builder = relationship.builder
         self.set_keys(owner, self.fn)
 
         if instance.is_loaded():
@@ -62,10 +80,26 @@ class MorphToMany(BaseRelationship):
         Returns:
             dict -- A dictionary of data which will be hydrated.
         """
-        model = self.morph_map().get(instance.__attributes__[self.morph_key])
-        record = instance.__attributes__[self.morph_id]
+        builder_results = builder
+        builder_results.join(f"{self._table}"+ ' as morph_table', lambda join: (
+            (
+                join
+                .on(
+                    f"morph_table.{self.morphing_id}",
+                    "=",
+                    f"{builder.get_table_name()}.{builder.get_primary_key()}",
+                )
+                .where(f"morph_table.{self.morph_id}", instance.__attributes__[instance.get_primary_key()])
+            )
+        ))
+        results = builder_results.get()
 
-        return model.where(model.get_primary_key(), record).first()
+        for model in results:
+            model.delete_attribute(self.morph_id)
+            model.delete_attribute(self.morphing_id)
+
+        return results
+
 
     def get_related(self, query, relation, eagers=None, callback=None):
         """Gets the relation needed between the relation and the related builder. If the relation is a collection
@@ -109,9 +143,17 @@ class MorphToMany(BaseRelationship):
     def morph_map(self):
         return load_config().DB._morph_map
 
-    def attach(self, current_model, related_record):
-        raise NotImplementedError(
-            "MorphToMany relationship does not implement the attach method"
+    def attach(self, current_model, related_record, extra_fields=None):
+        data = {
+            self.morph_id: getattr(current_model, self.local_owner_key),
+            self.morph_key: current_model.__class__.__name__,
+            self.morphing_id: getattr(related_record, self.other_owner_key),
+        }
+        return (
+            Pivot.on(current_model.get_builder().connection)
+            .table(self._table)
+            .without_global_scopes()
+            .create(data)
         )
 
     def attach_related(self, current_model, related_record):
