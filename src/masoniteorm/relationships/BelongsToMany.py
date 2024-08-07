@@ -139,7 +139,7 @@ class BelongsToMany(BaseRelationship):
                     pivot_data.update({field: getattr(model, field)})
                     model.delete_attribute(field)
 
-            model.__original_attributes__.update(
+            model.__attributes__.update(
                 {
                     self._as: (
                         Pivot.on(query.connection)
@@ -501,7 +501,7 @@ class BelongsToMany(BaseRelationship):
 
         return return_query
 
-    def attach(self, current_model, related_record):
+    def attach(self, current_model, related_record, extra_fields=None):
         data = {
             self.local_key: getattr(current_model, self.local_owner_key),
             self.foreign_key: getattr(related_record, self.other_owner_key),
@@ -519,6 +519,14 @@ class BelongsToMany(BaseRelationship):
                 }
             )
 
+        if extra_fields and self.with_fields:
+            extra_field_data = {}
+            for field in self.with_fields:
+                extra_field_data[field] = extra_fields[field]
+
+            data.update(
+                extra_field_data
+            )
         return (
             Pivot.on(current_model.get_builder().connection)
             .table(self._table)

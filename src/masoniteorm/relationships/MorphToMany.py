@@ -53,6 +53,7 @@ class MorphToMany(BaseRelationship):
             object -- Either returns a builder or a hydrated model.
         """
         attribute = self.fn.__name__
+        relationship = self.fn(instance)()
         self._related_builder = relationship.builder
         self.set_keys(owner, self.fn)
 
