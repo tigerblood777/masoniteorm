@@ -131,6 +131,24 @@ class Collection:
             pass
         return result
 
+    def only(self, attributes: list) -> dict:
+        if isinstance(attributes, str):
+            attributes = [attributes]
+        results: dict[str, Any] = {}
+
+        for attribute in attributes:
+            if " as " in attribute:
+                attribute, alias = attribute.split(" as ")
+                alias = alias.strip()
+                attribute = attribute.strip()
+            else:
+                alias = attribute.strip()
+                attribute = attribute.strip()
+
+            results[alias] = self._items.get(attribute)
+
+        return results
+
     def chunk(self, size: int):
         """Chunks the items.
 
